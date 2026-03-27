@@ -68,6 +68,23 @@ export default function ResultsPage({ results, subject, attempt, user, onBack, o
 
           <a href={waLink} target="_blank" rel="noreferrer" style={{ background: "#25D36615", border: "1px solid #25D36630", borderRadius: 7, padding: "5px 11px", color: "#25D366", textDecoration: "none", fontSize: 11, fontWeight: 800 }}>WhatsApp</a>
           <a href={tgLink} target="_blank" rel="noreferrer" style={{ background: "#0088cc15", border: "1px solid #0088cc30", borderRadius: 7, padding: "5px 11px", color: "#0088cc", textDecoration: "none", fontSize: 11, fontWeight: 800 }}>Telegram</a>
+          <a href="https://docs.google.com/forms/d/e/1FAIpQLSchH-8iOEymeX2w6EJHkAWprEIeoXxE2uAyUaPiDYGzF8Cw-g/viewform"
+            target="_blank"
+            rel="noreferrer"
+            style={{
+              background: `${C.gold}15`,
+              border: `1px solid ${C.gold}40`,
+              borderRadius: 7,
+              padding: "5px 11px",
+              color: C.gold,
+              textDecoration: "none",
+              fontSize: 11,
+              fontWeight: 800,
+              fontFamily: "var(--font-body)",
+            }}
+          >
+            📝 Feedback
+          </a>
         </div>
 
         {/* Tab bar */}
