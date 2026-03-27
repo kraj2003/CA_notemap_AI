@@ -12,9 +12,10 @@ Setup:
   uvicorn main:app --reload --port 8000
 """
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
+from fastapi.responses import JSONResponse
 from groq import Groq
 import json, re, traceback
 import os 
@@ -101,8 +102,10 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
     allow_credentials=False,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "OPTIONS"],
+    allow_headers=["Content-Type", "Accept", "Origin"],
+    expose_headers=["*"],
+    max_age=3600,
 )
 
 client = Groq(api_key=GROQ_API_KEY)
@@ -229,6 +232,16 @@ Limits: flashcards 8 (3 Easy 3 Medium 2 Hard), quiz 6 (correct MUST match option
 # ROUTES
 # ═══════════════════════════════════════════════════════════
 
+@app.options("/api/generate")
+async def options_generate(request: Request):
+    return JSONResponse(
+        content={},
+        headers={
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Methods": "POST, OPTIONS",
+            "Access-Control-Allow-Headers": "Content-Type, Accept",
+        }
+    )
 @app.get("/")
 def root():
     return {"status": "CA NoteMap API running", "version": "3.0.0"}
