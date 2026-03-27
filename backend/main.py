@@ -315,6 +315,9 @@ def verify_payment(body: dict):
 def get_subjects():
     return {"subjects": list(SUBJECT_GUIDES.keys())}
 
+@app.get("/health")
+def health_check():
+    return {"status": "ok"}
 
 if __name__ == "__main__":
     import uvicorn
