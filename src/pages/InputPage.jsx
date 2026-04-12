@@ -1,21 +1,40 @@
+/**
+ * InputPage.jsx — Phase 4 Update
+ * ====================================
+ * CHANGES FROM ORIGINAL:
+ *   - Smart upgrade nudge appears at generation 3 (not 5)
+ *   - Cleaner usage display
+ *   - Checking spinner while premium status loads
+ *
+ * WHY NUDGE AT 3 NOT 5:
+ *   At generation 5, the user is blocked and frustrated.
+ *   At generation 3, they've had success (3 wins!), they see value,
+ *   and they have 2 left — enough to still feel generous about.
+ *   That's the moment to convert, not when they're hitting a wall.
+ */
+
 import { useState, useRef } from "react";
 import { C, SUBJECTS, SAMPLE_TOPICS, FREE_GENERATIONS, FREE_PDF_UPLOADS } from "../utils/constants";
-import { Card, Btn, Tag } from "../components/UI";
+import { Card, Btn, Tag, Spinner } from "../components/UI";
 
 export default function InputPage({
   subject, attempt, user, noteText, setNoteText,
   onGenerate, onChangeSubject, onShowPayment, error,
 }) {
-  const { email, isPremium, isOwner, freeGens, freePdfs, remainingGens, remainingPdfs, canGenerate, canUploadPdf } = user;
-  const [pdfName, setPdfName]     = useState("");
+  const {
+    email, isPremium, isOwner, freeGens, freePdfs,
+    canGenerate, canUploadPdf, checking,
+  } = user;
+
+  const [pdfName,    setPdfName]    = useState("");
   const [pdfLoading, setPdfLoading] = useState(false);
-  const [pdfErr, setPdfErr]       = useState("");
+  const [pdfErr,     setPdfErr]     = useState("");
   const fileRef = useRef(null);
 
   const subjectColor = SUBJECTS[subject]?.color || C.gold;
   const ownerMode    = isOwner();
 
-  // ── PDF text extraction using FileReader ─────────────────
+  // ── PDF extraction ────────────────────────────────────────────────────────
   const handlePdf = async (file) => {
     if (!file) return;
     if (!file.name.toLowerCase().endsWith(".pdf")) {
@@ -33,12 +52,10 @@ export default function InputPage({
     setPdfName(file.name);
 
     try {
-      // Use PDF.js to extract text
       const arrayBuffer = await file.arrayBuffer();
       const uint8 = new Uint8Array(arrayBuffer);
 
       if (!window.pdfjsLib) {
-        // Simple fallback: read as text
         const text = new TextDecoder("utf-8", { fatal: false }).decode(uint8);
         const cleaned = text
           .replace(/[^\x20-\x7E\n\r\t\u00A0-\uFFFF]/g, " ")
@@ -54,12 +71,11 @@ export default function InputPage({
         return;
       }
 
-      // Use PDF.js if available
-      const pdf = await window.pdfjsLib.getDocument({ data: uint8 }).promise;
+      const pdf   = await window.pdfjsLib.getDocument({ data: uint8 }).promise;
       const pages = Math.min(pdf.numPages, 20);
       const parts = [];
       for (let i = 1; i <= pages; i++) {
-        const page = await pdf.getPage(i);
+        const page    = await pdf.getPage(i);
         const content = await page.getTextContent();
         parts.push(content.items.map((item) => item.str).join(" "));
       }
@@ -92,24 +108,67 @@ export default function InputPage({
             {SUBJECTS[subject]?.icon} {subject}
           </div>
           <Tag color={C.textMid}>{attempt}</Tag>
-          {ownerMode
-            ? <Tag color={C.green}>OWNER · Unlimited</Tag>
-            : isPremium
-              ? <Tag color={C.green}>PREMIUM</Tag>
-              : <button onClick={onShowPayment} style={{ background: `${C.gold}15`, border: `1px solid ${C.gold}40`, borderRadius: 8, padding: "5px 12px", color: C.gold, cursor: "pointer", fontSize: 12, fontWeight: 800, fontFamily: "var(--font-body)" }}>Upgrade ✦</button>
+
+          {/* Premium status indicator */}
+          {checking
+            ? <span style={{ display: "flex", alignItems: "center", gap: 6, color: C.textDim, fontSize: 12 }}>
+                <Spinner size={12} color={C.textDim} /> Checking...
+              </span>
+            : ownerMode
+              ? <Tag color={C.green}>OWNER · Unlimited</Tag>
+              : isPremium
+                ? <Tag color={C.green}>PREMIUM ✓</Tag>
+                : <button
+                    onClick={onShowPayment}
+                    style={{
+                      background: `${C.gold}15`, border: `1px solid ${C.gold}40`,
+                      borderRadius: 8, padding: "5px 12px", color: C.gold,
+                      cursor: "pointer", fontSize: 12, fontWeight: 800,
+                      fontFamily: "var(--font-body)",
+                    }}>
+                    Upgrade ✦
+                  </button>
           }
         </div>
       </div>
 
-      {/* Usage bar */}
-      {!ownerMode && !isPremium && (
-        <div style={{ background: C.surfaceHi, border: `1px solid ${C.border}`, borderRadius: 10, padding: "10px 16px", marginBottom: 16, display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
-          <span style={{ color: C.textMid, fontSize: 13 }}>
-            Generations: <strong style={{ color: freeGens >= FREE_GENERATIONS ? C.red : C.gold }}>{freeGens}/{FREE_GENERATIONS}</strong>
-            &nbsp;·&nbsp;
-            PDF uploads: <strong style={{ color: freePdfs >= FREE_PDF_UPLOADS ? C.red : C.teal }}>{freePdfs}/{FREE_PDF_UPLOADS}</strong>
+      {/* ── Smart Upgrade Nudge — shows at generation 3, not 5 ── */}
+      {/* This is intentional. At gen 3 users have seen value and still have 2 left.
+          That's a much better conversion moment than blocking them at gen 5. */}
+      {!ownerMode && !isPremium && !checking && freeGens >= 3 && canGenerate() && (
+        <div style={{
+          background: `${C.gold}10`, border: `1px solid ${C.gold}30`,
+          borderRadius: 10, padding: "12px 16px", marginBottom: 16,
+          display: "flex", justifyContent: "space-between", alignItems: "center",
+          flexWrap: "wrap", gap: 10,
+        }}>
+          <span style={{ color: C.gold, fontSize: 13, fontWeight: 600 }}>
+            ⚡ {FREE_GENERATIONS - freeGens} free generation{FREE_GENERATIONS - freeGens === 1 ? "" : "s"} remaining
           </span>
-          {(!canGenerate() || !canUploadPdf()) && (
+          <Btn small variant="outline" onClick={onShowPayment}>
+            Upgrade — ₹99/mo
+          </Btn>
+        </div>
+      )}
+
+      {/* Usage bar — only for free users */}
+      {!ownerMode && !isPremium && !checking && (
+        <div style={{
+          background: C.surfaceHi, border: `1px solid ${C.border}`,
+          borderRadius: 10, padding: "10px 16px", marginBottom: 16,
+          display: "flex", justifyContent: "space-between", alignItems: "center",
+          flexWrap: "wrap", gap: 8,
+        }}>
+          <span style={{ color: C.textMid, fontSize: 13 }}>
+            Generations: <strong style={{ color: freeGens >= FREE_GENERATIONS ? C.red : C.gold }}>
+              {freeGens}/{FREE_GENERATIONS}
+            </strong>
+            &nbsp;·&nbsp;
+            PDFs: <strong style={{ color: freePdfs >= FREE_PDF_UPLOADS ? C.red : C.teal }}>
+              {freePdfs}/{FREE_PDF_UPLOADS}
+            </strong>
+          </span>
+          {!canGenerate() && (
             <Btn small variant="outline" onClick={onShowPayment}>Upgrade Now</Btn>
           )}
         </div>
@@ -124,7 +183,7 @@ export default function InputPage({
         </p>
       </div>
 
-      {/* ── PDF Upload ─────────────────────────────────────── */}
+      {/* PDF Upload */}
       <Card style={{ marginBottom: 16, padding: "18px 20px" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12, flexWrap: "wrap", gap: 10 }}>
           <div>
@@ -147,9 +206,7 @@ export default function InputPage({
               onChange={(e) => handlePdf(e.target.files?.[0])}
             />
             <Btn
-              small
-              variant="teal"
-              loading={pdfLoading}
+              small variant="teal" loading={pdfLoading}
               onClick={() => {
                 if (!canUploadPdf()) { onShowPayment(); return; }
                 fileRef.current?.click();
@@ -160,7 +217,7 @@ export default function InputPage({
           </div>
         </div>
 
-        {/* Drag & Drop zone */}
+        {/* Drag & Drop */}
         <div
           onDragOver={(e) => { e.preventDefault(); e.currentTarget.style.borderColor = C.teal; }}
           onDragLeave={(e) => { e.currentTarget.style.borderColor = C.border; }}
@@ -179,15 +236,12 @@ export default function InputPage({
         >
           <div style={{ fontSize: 28, marginBottom: 6 }}>📥</div>
           <p style={{ color: C.textMid, fontSize: 13, margin: 0 }}>
-            Drag & drop a PDF here, or{" "}
-            <span style={{ color: C.teal, fontWeight: 700 }}>click to browse</span>
+            Drag & drop a PDF here, or <span style={{ color: C.teal, fontWeight: 700 }}>click to browse</span>
           </p>
-          <p style={{ color: C.textDim, fontSize: 11, marginTop: 4 }}>PDF only · Max 10 MB · Up to 20 pages extracted</p>
+          <p style={{ color: C.textDim, fontSize: 11, marginTop: 4 }}>PDF only · Max 10 MB · Up to 20 pages</p>
         </div>
 
-        {pdfErr && (
-          <p style={{ color: C.red, fontSize: 13, marginTop: 10 }}>{pdfErr}</p>
-        )}
+        {pdfErr && <p style={{ color: C.red, fontSize: 13, marginTop: 10 }}>{pdfErr}</p>}
       </Card>
 
       {/* Text area */}
@@ -198,7 +252,7 @@ export default function InputPage({
         <textarea
           value={noteText}
           onChange={(e) => setNoteText(e.target.value)}
-          placeholder={`Paste your ${subject} notes here...\n\nExample: As per Section 43B of Income Tax Act, certain deductions are allowed only on actual payment basis. These include:\n1. Taxes, duties, cess\n2. Employer's contribution to PF\n\nThe AI will generate mind maps, MCQs, flashcards, amendment alerts and more.`}
+          placeholder={`Paste your ${subject} notes here...\n\nExample: As per Section 43B of Income Tax Act, certain deductions are allowed only on actual payment basis...`}
           style={{ minHeight: 200 }}
         />
         <div style={{ display: "flex", justifyContent: "space-between", marginTop: 10 }}>
@@ -206,30 +260,40 @@ export default function InputPage({
             {noteText.trim().split(/\s+/).filter(Boolean).length} words
           </span>
           <span style={{ color: C.textDim, fontSize: 12 }}>
-            {ownerMode || isPremium ? "Unlimited" : "1,500 word limit on free tier"}
+            {ownerMode || isPremium ? "Up to 4,000 words" : "1,500 word limit on free tier"}
           </span>
         </div>
       </Card>
 
+      {/* Error display */}
       {error && (
-        <div style={{ background: `${C.red}12`, border: `1px solid ${C.red}35`, borderRadius: 10, padding: "11px 16px", color: C.red, fontSize: 13, marginBottom: 16, lineHeight: 1.5 }}>
+        <div style={{
+          background: `${C.red}12`, border: `1px solid ${C.red}35`,
+          borderRadius: 10, padding: "11px 16px",
+          color: C.red, fontSize: 13, marginBottom: 16, lineHeight: 1.5,
+        }}>
           {error}
         </div>
       )}
 
+      {/* Generate button */}
       <Btn
         onClick={onGenerate}
-        disabled={noteText.trim().length < 40 || !canGenerate()}
+        disabled={noteText.trim().length < 40 || (!canGenerate() && !checking)}
+        loading={checking}
         style={{ width: "100%", justifyContent: "center", padding: "14px 24px", fontSize: 15 }}
       >
-        🧠 Generate CA Study Package
+        {checking ? "Checking account..." : "🧠 Generate CA Study Package"}
       </Btn>
 
-      {!ownerMode && !isPremium && canGenerate() && (
+      {!ownerMode && !isPremium && !checking && canGenerate() && (
         <p style={{ color: C.textDim, fontSize: 12, textAlign: "center", marginTop: 12 }}>
-          Free: Mind Map + Concept Flow + Summary · {" "}
-          <button onClick={onShowPayment} style={{ background: "none", border: "none", color: C.gold, cursor: "pointer", fontSize: 12, padding: 0, fontFamily: "inherit" }}>
-            Upgrade for all tools →
+          Free: Mind Map + Concept Flow + Summary ·{" "}
+          <button
+            onClick={onShowPayment}
+            style={{ background: "none", border: "none", color: C.gold, cursor: "pointer", fontSize: 12, padding: 0, fontFamily: "inherit" }}
+          >
+            Upgrade for all 9 tools →
           </button>
         </p>
       )}
@@ -241,7 +305,8 @@ export default function InputPage({
         </p>
         <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
           {(SAMPLE_TOPICS[subject] || []).map((t) => (
-            <button key={t}
+            <button
+              key={t}
               onClick={() => setNoteText(`Topic: ${t}\n\nGenerate comprehensive CA ${attempt} study notes for this topic.`)}
               style={{
                 background: C.surfaceHi, border: `1px solid ${C.border}`,

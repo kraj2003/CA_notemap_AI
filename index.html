@@ -4,8 +4,43 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="description" content="CA NoteMap AI — AI-powered study assistant for Chartered Accountancy students" />
-    <title>CA NoteMap AI</title>
+
+    <!-- ═══════════════════════════════════════════
+         PHASE 4: SEO + Social Meta Tags
+         These make your WhatsApp/Telegram share
+         previews look professional, and help with
+         Google discovery over time.
+         ═══════════════════════════════════════════ -->
+
+    <!-- Basic SEO -->
+    <title>CA NoteMap AI — Study Smarter, Pass CA Faster</title>
+    <meta name="description"
+      content="AI-powered study assistant for CA students. Transform your notes into mind maps, ICAI-style MCQs, flashcards, amendment alerts and 7-day study plans in under 10 seconds." />
+    <meta name="keywords"
+      content="CA exam preparation, CA notes AI, ICAI study tool, CA mind map, CA MCQ practice, IndAS notes, Direct Tax notes, CA Final preparation" />
+    <meta name="author" content="CA NoteMap AI" />
+
+    <!-- WhatsApp / Telegram / Twitter preview -->
+    <meta property="og:title"       content="CA NoteMap AI — Study Smarter, Pass CA Faster" />
+    <meta property="og:description" content="Transform CA notes into mind maps, MCQs and study plans in 10 seconds. Specialized for ICAI exam patterns." />
+    <meta property="og:image"       content="https://ca-notemap-ai.onrender.com/og-image.png" />
+    <!-- ↑ Create a 1200×630 image (screenshot of your app) and put it in /public/ -->
+    <meta property="og:type"        content="website" />
+    <meta property="og:url"         content="https://your-app-url.vercel.app" />
+    <!-- ↑ Update with your actual Vercel/Netlify URL -->
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card"        content="summary_large_image" />
+    <meta name="twitter:title"       content="CA NoteMap AI" />
+    <meta name="twitter:description" content="AI study assistant specialized for ICAI CA exams." />
+    <meta name="twitter:image"       content="https://ca-notemap-ai.onrender.com/og-image.png" />
+
+    <!-- Mobile PWA-style settings -->
+    <meta name="theme-color"              content="#C9A84C" />
+    <meta name="mobile-web-app-capable"   content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="CA NoteMap AI" />
 
     <!-- jsPDF for PDF export -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -13,7 +48,6 @@
     <!-- PDF.js for PDF text extraction -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
     <script>
-      // Configure PDF.js worker
       if (window.pdfjsLib) {
         window.pdfjsLib.GlobalWorkerOptions.workerSrc =
           "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";

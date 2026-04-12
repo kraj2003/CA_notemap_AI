@@ -1,7 +1,26 @@
+/**
+ * UI.jsx — Phase 3 Update
+ * ====================================
+ * CHANGES FROM ORIGINAL:
+ *   - PayModal: removed manual code input entirely
+ *   - PayModal: Razorpay-only flow with email prefill
+ *   - PayModal: stores pending email in localStorage before redirect
+ *   - PayModal: clear messaging about what happens after payment
+ *   - All other components (Spinner, Tag, Card, Btn, etc.) unchanged
+ *
+ * HOW PAYMENT FLOW WORKS:
+ *   1. User clicks "Pay ₹99 via Razorpay"
+ *   2. Their email is saved to localStorage as "ca_pending_email"
+ *   3. Razorpay opens in new tab with email prefilled
+ *   4. After payment, Razorpay redirects to your app with ?payment_id=xxx
+ *   5. App.jsx useEffect catches this, verifies, activates premium
+ */
+
 import { useState } from "react";
 import { C } from "../utils/constants";
+import { track, EVENTS } from "../utils/analytics";
 
-/* ─── Spinner ────────────────────────────────────────────────────────────── */
+// ── Spinner ────────────────────────────────────────────────────────────────
 export const Spinner = ({ size = 18, color = C.gold }) => (
   <span style={{
     display: "inline-block", width: size, height: size,
@@ -10,7 +29,7 @@ export const Spinner = ({ size = 18, color = C.gold }) => (
   }} />
 );
 
-/* ─── Tag / Badge ────────────────────────────────────────────────────────── */
+// ── Tag ────────────────────────────────────────────────────────────────────
 export const Tag = ({ children, color = C.gold, style = {} }) => (
   <span style={{
     background: `${color}18`, color, border: `1px solid ${color}35`,
@@ -19,7 +38,7 @@ export const Tag = ({ children, color = C.gold, style = {} }) => (
   }}>{children}</span>
 );
 
-/* ─── Gold Divider ───────────────────────────────────────────────────────── */
+// ── Gold Divider ───────────────────────────────────────────────────────────
 export const GoldDivider = ({ style = {} }) => (
   <div style={{
     height: 1,
@@ -28,7 +47,7 @@ export const GoldDivider = ({ style = {} }) => (
   }} />
 );
 
-/* ─── Card ───────────────────────────────────────────────────────────────── */
+// ── Card ───────────────────────────────────────────────────────────────────
 export const Card = ({ children, style = {}, glow = false, onClick }) => (
   <div onClick={onClick} style={{
     background: C.surface,
@@ -41,7 +60,7 @@ export const Card = ({ children, style = {}, glow = false, onClick }) => (
   }}>{children}</div>
 );
 
-/* ─── Button ─────────────────────────────────────────────────────────────── */
+// ── Button ─────────────────────────────────────────────────────────────────
 export const Btn = ({
   children, onClick, disabled, variant = "primary",
   style = {}, loading = false, small = false,
@@ -81,7 +100,7 @@ export const Btn = ({
   );
 };
 
-/* ─── Progress Bar ───────────────────────────────────────────────────────── */
+// ── Progress Bar ───────────────────────────────────────────────────────────
 export const ProgressBar = ({ value, color = C.gold, height = 3 }) => (
   <div style={{ background: C.border, borderRadius: 99, height, overflow: "hidden" }}>
     <div style={{
@@ -93,7 +112,7 @@ export const ProgressBar = ({ value, color = C.gold, height = 3 }) => (
   </div>
 );
 
-/* ─── Section Header ─────────────────────────────────────────────────────── */
+// ── Section Header ─────────────────────────────────────────────────────────
 export const SectionHeader = ({ title, subtitle, color }) => (
   <div style={{ marginBottom: 20 }}>
     <h2 style={{
@@ -109,7 +128,7 @@ export const SectionHeader = ({ title, subtitle, color }) => (
   </div>
 );
 
-/* ─── Locked overlay ─────────────────────────────────────────────────────── */
+// ── Locked Overlay ─────────────────────────────────────────────────────────
 export const Locked = ({ onUpgrade }) => (
   <div style={{ textAlign: "center", padding: "48px 24px" }}>
     <div style={{ fontSize: 40, marginBottom: 16, animation: "float 3s ease-in-out infinite" }}>🔐</div>
@@ -124,91 +143,120 @@ export const Locked = ({ onUpgrade }) => (
   </div>
 );
 
-/* ─── Payment Modal ──────────────────────────────────────────────────────── */
-export const PayModal = ({ onClose, onUnlock }) => {
-  const [code, setCode] = useState("");
-  const [err,  setErr]  = useState("");
+// ── Payment Modal (Razorpay Only) ──────────────────────────────────────────
+//
+// SETUP: Replace YOUR_RAZORPAY_LINK_ID below with your actual Payment Link ID
+// from the Razorpay dashboard (looks like: rzp.io/l/AbCdEfGh)
+//
+// HOW IT WORKS:
+//   1. User clicks Pay → we save their email to localStorage
+//   2. Razorpay opens in new tab with email prefilled
+//   3. After payment, Razorpay redirects to your site
+//   4. App.jsx catches the ?payment_id param and verifies
+//
+export const PayModal = ({ onClose, email }) => {
+  const [clicked, setClicked] = useState(false);
 
-  const handle = () => {
-    if (onUnlock(code)) setErr("");
-    else setErr("Invalid code. Please check and try again.");
+  // ↓ Replace this with your actual Razorpay Payment Link
+  const RAZORPAY_LINK = `https://rzp.io/rzp/y11bd7k`;
+
+  const handlePay = () => {
+    // Save pending email so we know who to activate on return
+    track(EVENTS.PAYMENT_INITIATED);
+    localStorage.setItem("ca_pending_email", email);
+    setClicked(true);
+    window.open(RAZORPAY_LINK, "_blank");
   };
+
+  const features = [
+    "Unlimited note generations",
+    "Unlimited PDF uploads",
+    "MCQ Quiz — ICAI exam pattern",
+    "Flip Flashcards — all difficulties",
+    "7-Day personalised study plan",
+    "Recent amendment tracker",
+    "Mnemonics + common mistake alerts",
+    "Full PDF report download",
+  ];
 
   return (
     <div style={{
-      position: "fixed", inset: 0, background: "rgba(0,0,0,0.78)",
+      position: "fixed", inset: 0, background: "rgba(0,0,0,0.82)",
       display: "flex", alignItems: "center", justifyContent: "center",
       zIndex: 200, padding: 24,
     }}>
-      <Card glow style={{ maxWidth: 420, width: "100%", position: "relative" }}>
+      <Card glow style={{ maxWidth: 440, width: "100%", position: "relative" }}>
+
+        {/* Close button */}
         <button onClick={onClose} style={{
           position: "absolute", top: 14, right: 16,
           background: "none", border: "none", color: C.textMid,
-          cursor: "pointer", fontSize: 22,
+          cursor: "pointer", fontSize: 22, lineHeight: 1,
         }}>×</button>
 
+        {/* Header */}
         <div style={{ textAlign: "center", marginBottom: 24 }}>
-          <div style={{ fontSize: 36, marginBottom: 12, animation: "float 3s ease-in-out infinite" }}>✦</div>
+          <div style={{ fontSize: 38, marginBottom: 12, animation: "float 3s ease-in-out infinite" }}>✦</div>
           <h3 style={{
-            fontFamily: "var(--font-head)", margin: "0 0 6px",
+            fontFamily: "var(--font-head)", margin: "0 0 8px",
             fontSize: 22, fontWeight: 700, color: C.white,
-          }}>Upgrade to Premium</h3>
-          <p style={{ color: C.textMid, fontSize: 13 }}>
-            Everything unlocked for your CA preparation
+          }}>
+            {clicked ? "Payment window opened ↗" : "You've used your 5 free generations"}
+          </h3>
+          <p style={{ color: C.textMid, fontSize: 13, lineHeight: 1.6 }}>
+            {clicked
+              ? `Complete payment in the Razorpay tab. Once done, return here and refresh — your premium will activate automatically for ${email}`
+              : "Upgrade to continue. Unlock all 9 tools, unlimited generations, and PDF export."
+            }
           </p>
         </div>
 
+        {/* Pricing */}
         <div style={{
           background: `${C.gold}0C`, border: `1px solid ${C.gold}25`,
           borderRadius: 14, padding: "18px 20px", marginBottom: 22,
         }}>
-          <div style={{
-            fontFamily: "var(--font-head)", fontSize: 30,
-            fontWeight: 700, color: C.gold, marginBottom: 4,
-          }}>
-            ₹99
-            <span style={{ fontSize: 14, color: C.textMid, fontWeight: 400, fontFamily: "var(--font-body)" }}>
-              /month
-            </span>
+          <div style={{ display: "flex", alignItems: "baseline", gap: 6, marginBottom: 14 }}>
+            <span style={{
+              fontFamily: "var(--font-head)", fontSize: 32,
+              fontWeight: 700, color: C.gold,
+            }}>₹99</span>
+            <span style={{ fontSize: 13, color: C.textMid }}>/ month</span>
           </div>
-          {[
-            "Unlimited generations",
-            "Unlimited PDF uploads",
-            "MCQ Quiz + Flashcards",
-            "7-Day study plans",
-            "Amendment tracker",
-            "Mnemonics + Mistake alerts",
-            "Full PDF report download",
-            "Priority support",
-          ].map((f) => (
-            <div key={f} style={{ color: C.textMid, fontSize: 13, marginTop: 7, display: "flex", gap: 8 }}>
-              <span style={{ color: C.gold }}>✓</span>{f}
+          {features.map((f) => (
+            <div key={f} style={{
+              color: C.textMid, fontSize: 13, marginTop: 7,
+              display: "flex", gap: 10, alignItems: "center",
+            }}>
+              <span style={{ color: C.gold, fontSize: 12 }}>✓</span>
+              {f}
             </div>
           ))}
         </div>
 
+        {/* Pay button */}
         <Btn
-          style={{ width: "100%", justifyContent: "center", marginBottom: 18 }}
-          onClick={() => window.open("https://razorpay.com", "_blank")}
+          style={{ width: "100%", justifyContent: "center", padding: "14px 24px", fontSize: 15, marginBottom: 14 }}
+          onClick={handlePay}
         >
-          Pay ₹99 via Razorpay
+          {clicked ? "Reopen Payment Page ↗" : "Pay ₹99 via Razorpay →"}
         </Btn>
 
-        <GoldDivider />
-        <p style={{ color: C.textMid, fontSize: 13, marginBottom: 10 }}>
-          Already paid? Enter your access code:
-        </p>
-        <div style={{ display: "flex", gap: 10 }}>
-          <input
-            value={code}
-            onChange={(e) => setCode(e.target.value.toUpperCase())}
-            placeholder="e.g. PAID99"
-          />
-          <Btn variant="outline" onClick={handle}>Unlock</Btn>
+        {/* Email confirmation */}
+        <div style={{
+          background: C.surfaceHi, border: `1px solid ${C.border}`,
+          borderRadius: 10, padding: "10px 14px",
+          display: "flex", gap: 10, alignItems: "center",
+        }}>
+          <span style={{ fontSize: 14 }}>📧</span>
+          <div>
+            <div style={{ color: C.textDim, fontSize: 10, fontWeight: 800, letterSpacing: "0.5px" }}>PREMIUM ACTIVATES FOR</div>
+            <div style={{ color: C.gold, fontSize: 13, fontWeight: 700, marginTop: 2 }}>{email}</div>
+          </div>
         </div>
-        {err && <p style={{ color: C.red, fontSize: 12, marginTop: 8 }}>{err}</p>}
-        <p style={{ color: C.textDim, fontSize: 11, marginTop: 12, textAlign: "center" }}>
-          5 free generations + 5 PDF uploads included. No auto-renewal.
+
+        <p style={{ color: C.textDim, fontSize: 11, marginTop: 14, textAlign: "center", lineHeight: 1.6 }}>
+          Secure payment via Razorpay · No auto-renewal · 5 free generations always included
         </p>
       </Card>
     </div>

@@ -1,107 +1,140 @@
 import { useState, useEffect } from "react";
-import { OWNER_EMAIL, PREMIUM_CODES, FREE_GENERATIONS, FREE_PDF_UPLOADS } from "../utils/constants";
+import { OWNER_EMAIL, FREE_GENERATIONS, FREE_PDF_UPLOADS } from "../utils/constants";
 
-const STORAGE_KEY = "ca_notemap_user";
+// ← Fixed: was "http://0.0.0.0:8000" which browsers can't reach
+const BACKEND_URL = "https://ca-notemap-ai.onrender.com";
 
-function loadState() {
+function getStorageKey(email) {
+  return `ca_notemap_${email.toLowerCase().trim()}`;
+}
+
+function loadUserData(email) {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    return raw ? JSON.parse(raw) : null;
+    const raw = localStorage.getItem(getStorageKey(email));
+    return raw
+      ? JSON.parse(raw)
+      : { isPremium: false, freeGens: 0, freePdfs: 0 };
   } catch {
-    return null;
+    return { isPremium: false, freeGens: 0, freePdfs: 0 };
   }
 }
 
-function saveState(state) {
+function saveUserData(email, data) {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    localStorage.setItem(getStorageKey(email), JSON.stringify(data));
   } catch {}
 }
 
 export function useUser() {
-  const [email, setEmailState] = useState("");
-  const [isPremium, setIsPremium] = useState(false);
-  const [freeGens, setFreeGens] = useState(0);
-  const [freePdfs, setFreePdfs] = useState(0);
+  const [email,     setEmailState] = useState("");
+  const [isPremium, setIsPremium]  = useState(false);
+  const [freeGens,  setFreeGens]   = useState(0);
+  const [freePdfs,  setFreePdfs]   = useState(0);
+  const [checking,  setChecking]   = useState(false);
 
-  // Load from localStorage on mount
-  useEffect(() => {
-    const saved = loadState();
-    if (saved) {
-      setEmailState(saved.email || "");
-      setIsPremium(saved.isPremium || false);
-      setFreeGens(saved.freeGens || 0);
-      setFreePdfs(saved.freePdfs || 0);
+  const setEmail = async (val) => {
+    const cleaned = val.toLowerCase().trim();
+    setEmailState(cleaned);
+
+    if (cleaned === OWNER_EMAIL.toLowerCase()) {
+      setIsPremium(true);
+      setFreeGens(0);
+      setFreePdfs(0);
+      return;
     }
-  }, []);
 
-  // Persist whenever state changes
+    const saved = loadUserData(cleaned);
+    setIsPremium(saved.isPremium || false);
+    setFreeGens(saved.freeGens   || 0);
+    setFreePdfs(saved.freePdfs   || 0);
+
+    try {
+      setChecking(true);
+      const res  = await fetch(`${BACKEND_URL}/api/check-premium`, {
+        method:  "POST",
+        headers: { "Content-Type": "application/json" },
+        body:    JSON.stringify({ email: cleaned }),
+      });
+      const data = await res.json();
+      if (data.is_premium) {
+        setIsPremium(true);
+        saveUserData(cleaned, { ...saved, isPremium: true });
+      }
+      if (data.free_gens_used > (saved.freeGens || 0)) {
+        setFreeGens(data.free_gens_used);
+        saveUserData(cleaned, { ...saved, freeGens: data.free_gens_used });
+      }
+    } catch {
+      // Backend unreachable — localStorage is fallback, app still works
+    } finally {
+      setChecking(false);
+    }
+  };
+
+  const handlePaymentReturn = async (paymentId, emailFromUrl) => {
+    if (!paymentId || !emailFromUrl) return false;
+    try {
+      const res  = await fetch(`${BACKEND_URL}/api/verify-razorpay`, {
+        method:  "POST",
+        headers: { "Content-Type": "application/json" },
+        body:    JSON.stringify({
+          razorpay_payment_id: paymentId,
+          email: emailFromUrl,
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        const saved = loadUserData(emailFromUrl);
+        saveUserData(emailFromUrl, { ...saved, isPremium: true });
+        setIsPremium(true);
+        return true;
+      }
+    } catch {}
+    return false;
+  };
+
   useEffect(() => {
-    if (email) {
-      saveState({ email, isPremium, freeGens, freePdfs });
+    if (email && email !== OWNER_EMAIL.toLowerCase()) {
+      saveUserData(email, { isPremium, freeGens, freePdfs });
     }
   }, [email, isPremium, freeGens, freePdfs]);
 
-  const setEmail = (val) => {
-    setEmailState(val);
-    // Owner gets unlimited access automatically
-    if (val.toLowerCase().trim() === OWNER_EMAIL.toLowerCase()) {
-      setIsPremium(true);
-    }
-  };
+  const isOwner = () => email === OWNER_EMAIL.toLowerCase();
 
-  const isOwner = () =>
-    email.toLowerCase().trim() === OWNER_EMAIL.toLowerCase();
+  const canGenerate  = () => isOwner() || isPremium || freeGens < FREE_GENERATIONS;
+  const canUploadPdf = () => isOwner() || isPremium || freePdfs < FREE_PDF_UPLOADS;
 
-  const canGenerate = () => {
-    if (isOwner() || isPremium) return true;
-    return freeGens < FREE_GENERATIONS;
-  };
-
-  const canUploadPdf = () => {
-    if (isOwner() || isPremium) return true;
-    return freePdfs < FREE_PDF_UPLOADS;
-  };
-
-  const remainingGens = () => {
-    if (isOwner() || isPremium) return Infinity;
-    return Math.max(0, FREE_GENERATIONS - freeGens);
-  };
-
-  const remainingPdfs = () => {
-    if (isOwner() || isPremium) return Infinity;
-    return Math.max(0, FREE_PDF_UPLOADS - freePdfs);
-  };
+  const remainingGens = () => isOwner() || isPremium ? Infinity : Math.max(0, FREE_GENERATIONS - freeGens);
+  const remainingPdfs = () => isOwner() || isPremium ? Infinity : Math.max(0, FREE_PDF_UPLOADS  - freePdfs);
 
   const incrementGen = () => {
-    if (!isOwner() && !isPremium) setFreeGens((g) => g + 1);
+    if (!isOwner() && !isPremium) {
+      setFreeGens((g) => g + 1);
+      fetch(`${BACKEND_URL}/api/increment-gen`, {
+        method:  "POST",
+        headers: { "Content-Type": "application/json" },
+        body:    JSON.stringify({ email }),
+      }).catch(() => {});
+    }
   };
 
   const incrementPdf = () => {
     if (!isOwner() && !isPremium) setFreePdfs((p) => p + 1);
   };
 
-  const unlockPremium = (code) => {
-    if (PREMIUM_CODES.includes(code.toUpperCase())) {
-      setIsPremium(true);
-      return true;
-    }
-    return false;
-  };
-
   const isTabLocked = (tabId) => {
     if (isOwner() || isPremium) return false;
-    const lockedTabs = ["flashcards", "quiz", "amendments", "plan"];
-    return lockedTabs.includes(tabId);
+    return ["flashcards", "quiz", "amendments", "plan"].includes(tabId);
   };
 
   return {
-    email, setEmail,
+    email, setEmail, checking,
     isPremium, isOwner,
     freeGens, freePdfs,
     canGenerate, canUploadPdf,
     remainingGens, remainingPdfs,
     incrementGen, incrementPdf,
-    unlockPremium, isTabLocked,
+    isTabLocked,
+    handlePaymentReturn,
   };
 }

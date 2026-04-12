@@ -80,11 +80,10 @@ select option {
 @keyframes glow    { 0%,100%{box-shadow:0 0 20px var(--gold-glow)} 50%{box-shadow:0 0 40px rgba(201,168,76,0.25)} }
 @keyframes float   { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-6px)} }
 @keyframes flip    { from{transform:rotateY(0)} to{transform:rotateY(180deg)} }
-@keyframes shimmer { 0%{background-position:-200% 0} 100%{background-position:200% 0} }
 
 .fade-up { animation: fadeUp 0.45s ease forwards; }
 
-/* Ambient background grid */
+/* Ambient background */
 .bg-grid {
   position: fixed;
   inset: 0;
@@ -104,4 +103,92 @@ select option {
     radial-gradient(ellipse at 80% 85%, rgba(14,165,160,0.05) 0%, transparent 50%);
   pointer-events: none;
   z-index: 0;
+}
+
+/* ═══════════════════════════════════════════════
+   PHASE 4 ADDITION: Mobile Responsiveness
+   CA students study on phones constantly.
+   These rules fix the most common mobile breaks.
+   ═══════════════════════════════════════════════ */
+
+/* Tab bar — horizontal scroll on mobile (no overflow) */
+@media (max-width: 768px) {
+  /* Results tab bar */
+  [class*="tab-bar"],
+  div[style*="overflowX: auto"] {
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+
+  /* Reduce font sizes on small screens */
+  h1 { font-size: clamp(28px, 8vw, 48px) !important; }
+  h2 { font-size: clamp(18px, 5vw, 24px) !important; }
+
+  /* Cards — full width on mobile */
+  div[style*="grid-template-columns: repeat(auto-fill"] {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Mind map — smaller height */
+  svg[viewBox="0 0 920 580"] {
+    min-height: 260px !important;
+  }
+
+  /* Results top bar — allow wrap */
+  div[style*="backdropFilter"] > div:first-child {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  /* Padding reduction on mobile */
+  div[style*="padding: 40px 24px"] {
+    padding: 24px 16px !important;
+  }
+
+  div[style*="padding: 56px 24px"] {
+    padding: 32px 16px 60px !important;
+  }
+
+  /* Share buttons in top bar — smaller */
+  a[href*="wa.me"],
+  a[href*="t.me"] {
+    padding: 4px 8px !important;
+    font-size: 10px !important;
+  }
+
+  /* PayModal — full width on mobile */
+  div[style*="maxWidth: 440"] {
+    max-width: 100% !important;
+    margin: 0 8px !important;
+  }
+
+  /* Flashcard height */
+  div[style*="height: 210"] {
+    height: auto !important;
+    min-height: 180px;
+  }
+}
+
+/* Very small phones */
+@media (max-width: 380px) {
+  body { font-size: 14px; }
+
+  div[style*="padding: 24px"] {
+    padding: 16px !important;
+  }
+}
+
+/* ═══════════════════════════════════════════════
+   Tab bar scrolling fix
+   The results tab bar needs explicit scroll
+   ═══════════════════════════════════════════════ */
+.results-tab-bar {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  scroll-snap-type: x mandatory;
+}
+
+.results-tab-bar::-webkit-scrollbar {
+  display: none;
 }

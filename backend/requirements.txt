@@ -2,3 +2,5 @@ fastapi
 uvicorn
 groq
 python-multipart
+httpx
+supabase 
