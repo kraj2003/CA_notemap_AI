@@ -56,7 +56,7 @@ import random, string
 # ═══════════════════════════════════════════════════════════
 
 GROQ_API_KEY          = os.getenv("GROQ_API_KEY")
-OWNER_EMAIL           = "khushirajpurohit2021@gmail.com","abc@gmail.com"
+OWNER_EMAIL           = ["khushirajpurohit2021@gmail.com", "abc@gmail.com"]
 
 SUPABASE_URL          = os.getenv("SUPABASE_URL")
 SUPABASE_SERVICE_KEY  = os.getenv("SUPABASE_SERVICE_KEY")
