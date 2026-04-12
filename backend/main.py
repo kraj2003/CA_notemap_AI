@@ -298,6 +298,15 @@ Limits: flashcards 8 (3 Easy 3 Medium 2 Hard), quiz 6 (correct MUST match option
 # ROUTES
 # ═══════════════════════════════════════════════════════════
 
+
+ 
+class GenerateRequest(BaseModel):
+    subject:    str
+    attempt:    str
+    notes:      str
+    email:      str = ""
+    is_premium: bool = False
+
 @app.get("/")
 def root():
     return {"status": "CA NoteMap API running", "version": "4.0.0"}
@@ -470,39 +479,28 @@ async def options_generate(request: Request):
             "Access-Control-Allow-Headers": "Content-Type, Accept",
         }
     )
-
+ 
 @app.post("/api/generate")
-def generate(req):
-    # (This route is unchanged from v3 — keeping your existing generate logic)
-    # Import locally to avoid circular issues
-    from pydantic import BaseModel
-
-    class GenerateRequest(BaseModel):
-        subject:    str
-        attempt:    str
-        notes:      str
-        email:      str = ""
-        is_premium: bool = False
-
+def generate(req: GenerateRequest):  # ← now properly typed
     # Validate
     if not req.notes or len(req.notes.strip()) < 40:
         raise HTTPException(400, "Notes too short. Minimum 40 characters.")
     if req.subject not in SUBJECT_GUIDES:
-        raise HTTPException(400, f"Invalid subject.")
+        raise HTTPException(400, "Invalid subject.")
     if req.attempt not in ATTEMPT_CONTEXT:
         raise HTTPException(400, "Invalid attempt.")
-
-    # Check premium from DB (authoritative)
-    is_owner   = req.email.lower().strip() == OWNER_EMAIL.lower()
+ 
+    # Check premium from DB (authoritative source of truth)
+    is_owner    = req.email.lower().strip() == OWNER_EMAIL.lower()
     user_record = get_user(req.email.lower().strip()) if req.email else None
-    is_premium = is_owner or (user_record and user_record.get("is_premium", False)) or req.is_premium
-
+    is_premium  = is_owner or (user_record and user_record.get("is_premium", False)) or req.is_premium
+ 
     limit = PREMIUM_WORD_LIMIT if is_premium else FREE_WORD_LIMIT
     notes = " ".join(req.notes.strip().split()[:limit])
-
+ 
     print(f"\n📥 {req.subject} | {req.attempt} | {req.email or 'anon'} | {len(notes.split())} words | premium={is_premium}")
-
-    # Call 1 — Core content
+ 
+    # Call 1 — Core content (mindmap, standards, topics, flow)
     part_a = None
     for n in range(2):
         try:
@@ -514,8 +512,8 @@ def generate(req):
             print(f"  ❌ Call 1 fail {n+1}: {e}")
             if n == 1:
                 raise HTTPException(500, f"Core generation failed: {str(e)}")
-
-    # Call 2 — Practice content
+ 
+    # Call 2 — Practice content (flashcards, quiz, plan, mnemonics)
     title  = part_a.get("title", req.subject)
     part_b = {}
     for n in range(2):
@@ -531,17 +529,17 @@ def generate(req):
                     "flashcards": [], "quiz": [], "amendments": [],
                     "studyPlan": [], "mnemonics": [], "commonMistakes": [],
                 }
-
+ 
+    # Merge both parts
     result = {**part_a, **part_b}
     result.setdefault("examFocus", "")
     result.setdefault("highWeightTopics", [])
     result.setdefault("mindmap", {"center": title, "branches": []})
     result.setdefault("standards", [])
     result.setdefault("conceptFlow", [])
-
+ 
     print(f"  🎉 Complete: {title}")
     return result
-
 # ── Subjects ──────────────────────────────────────────────────────────────────
 @app.get("/api/subjects")
 def get_subjects():
