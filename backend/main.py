@@ -355,7 +355,7 @@ def increment_gen(body: dict):
     Increments server-side counter (prevents localStorage manipulation).
     """
     email = body.get("email", "").lower().strip()
-    if not email or email == OWNER_EMAIL.lower():
+    if not email or email.lower() in [e.lower() for e in OWNER_EMAIL]:
         return {"ok": True}
 
     user = get_user(email)
@@ -491,7 +491,7 @@ def generate(req: GenerateRequest):  # ← now properly typed
         raise HTTPException(400, "Invalid attempt.")
  
     # Check premium from DB (authoritative source of truth)
-    is_owner    = req.email.lower().strip() == OWNER_EMAIL.lower()
+    is_owner = req.email.lower().strip() in [e.lower() for e in OWNER_EMAIL]
     user_record = get_user(req.email.lower().strip()) if req.email else None
     is_premium  = is_owner or (user_record and user_record.get("is_premium", False)) or req.is_premium
  
