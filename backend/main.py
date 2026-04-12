@@ -333,7 +333,7 @@ def check_premium(body: dict):
         raise HTTPException(400, "Email required")
 
     # Owner always gets premium
-    if email == OWNER_EMAIL.lower():
+    if email.lower() in [e.lower() for e in OWNER_EMAIL]:
         return {"is_premium": True, "free_gens_used": 0, "referral_code": None}
 
     user = upsert_user(email, {})  # creates if not exists, returns existing if exists
