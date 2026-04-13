@@ -48,6 +48,7 @@ export const TABS = [
   { id: "mindmap",     icon: "🧠", label: "Mind Map",      locked: false },
   { id: "topics",      icon: "🎯", label: "Exam Topics",   locked: false },
   { id: "standards",   icon: "📜", label: "Standards",     locked: false },
+  { id: "pyq",         icon: "📋", label: "PYQs",          locked: false },
   { id: "flashcards",  icon: "🃏", label: "Flash Cards",   locked: true  },
   { id: "quiz",        icon: "❓", label: "MCQ Quiz",      locked: true  },
   { id: "amendments",  icon: "🔔", label: "Amendments",    locked: true  },

@@ -202,6 +202,77 @@ export default function ResultsPage({ results, subject, attempt, user, onBack, o
           </div>
         )}
 
+        {/* ── PYQ ── */}
+        {activeTab === "pyq" && (
+          <div>
+            <SectionHeader
+              title="📋 Previous Year Questions"
+              subtitle="ICAI exam questions mapped to this topic"
+              color={subjectColor}
+            />
+            {(results.previousYearQuestions || []).length === 0 ? (
+              <Card>
+                <p style={{ color: C.textMid, textAlign: "center", padding: "20px 0" }}>
+                  No previous year questions found for this topic.
+                  Try adding more specific notes.
+                </p>
+              </Card>
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+                {(results.previousYearQuestions || []).map((pyq, i) => (
+                  <Card key={i}>
+                    {/* Header row */}
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 14, flexWrap: "wrap", gap: 10 }}>
+                      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                        <Tag color={subjectColor}>{pyq.attempt}</Tag>
+                        <Tag color={C.teal}>{pyq.marks} Marks</Tag>
+                        <Tag color={pyq.category === "Practical" ? C.gold : C.blue}>
+                          {pyq.category}
+                        </Tag>
+                      </div>
+                      <span style={{ color: C.textDim, fontSize: 12, fontFamily: "var(--font-mono)" }}>
+                        Q{i + 1}
+                      </span>
+                    </div>
+
+                    {/* Question */}
+                    <p style={{ color: C.white, fontSize: 15, fontWeight: 600, lineHeight: 1.7, marginBottom: 16 }}>
+                      {pyq.question}
+                    </p>
+
+                    {/* Answer approach */}
+                    <div style={{ background: `${subjectColor}10`, border: `1px solid ${subjectColor}25`, borderRadius: 10, padding: "12px 16px", marginBottom: 12 }}>
+                      <p style={{ color: subjectColor, fontSize: 12, fontWeight: 800, marginBottom: 6, letterSpacing: "0.4px" }}>
+                        HOW TO ANSWER IN EXAM
+                      </p>
+                      <p style={{ color: C.text, fontSize: 13, lineHeight: 1.6, margin: 0 }}>
+                        {pyq.approach}
+                      </p>
+                    </div>
+
+                    {/* Key points to include */}
+                    {(pyq.keyPoints || []).length > 0 && (
+                      <div>
+                        <p style={{ color: C.textMid, fontSize: 11, fontWeight: 800, marginBottom: 10, letterSpacing: "0.4px" }}>
+                          KEY POINTS TO INCLUDE IN ANSWER:
+                        </p>
+                        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                          {pyq.keyPoints.map((point, j) => (
+                            <div key={j} style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
+                              <span style={{ color: subjectColor, flexShrink: 0, marginTop: 2, fontSize: 12 }}>▸</span>
+                              <span style={{ color: C.text, fontSize: 13, lineHeight: 1.6 }}>{point}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </Card>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
         {/* ── STANDARDS ── */}
         {activeTab === "standards" && (
           <div>

@@ -241,7 +241,7 @@ Notes: \"\"\"{notes}\"\"\"
 Return this JSON only:
 {{
   "title": "topic title max 6 words",
-  "summary30sec": "3-4 exam-focused sentences with exact section refs",
+  "summary30sec": "Comprehensive summary covering EVERY concept in the notes. Minimum 8-10 sentences. Cover all sub-topics, conditions, exceptions, and section references. No concept should be left out. A student must be able to revise the entire topic just by reading this.",
   "examFocus": "how ICAI examines this: question types, marks, traps",
   "highWeightTopics": [
     {{"topic":"name","importance":"HIGH or MEDIUM","reason":"why tested","section":"exact ref","marks":"typical marks"}}
@@ -260,7 +260,7 @@ Return this JSON only:
   ]
 }}
 
-Limits: highWeightTopics 4-5, mindmap.branches 5 each with exactly 3 subtopics, standards 3-4, conceptFlow 5."""
+Limits: highWeightTopics 4-5, mindmap.branches 5 each with exactly 3 subtopics, standards 3-4, conceptFlow 7 steps minimum, each step must cover a distinct concept from the notes."""
 
 def prompt_part_b(subject: str, attempt: str, notes: str, title: str) -> str:
     guide   = SUBJECT_GUIDES.get(subject, "")
@@ -269,6 +269,12 @@ def prompt_part_b(subject: str, attempt: str, notes: str, title: str) -> str:
 Subject: {guide}
 Level: {att_ctx}
 Notes: \"\"\"{notes}\"\"\"
+
+CRITICAL INSTRUCTION: This is an EXAM tool, not a knowledge tool.
+Every output must be marks-oriented.
+Students want to score marks, not just understand concepts.
+Frame everything around: what will appear in exam, how many marks, 
+what exactly to write in answer sheet.
 
 Return this JSON only:
 {{
@@ -289,7 +295,17 @@ Return this JSON only:
   ],
   "commonMistakes": [
     {{"mistake":"what students do wrong","correction":"correct approach with rule","frequency":"Very Common or Common"}}
-  ]
+  ],
+  "previousYearQuestions": [
+  {{
+    "question": "exact question as asked in exam",
+    "attempt": "May 2023 or Nov 2022 etc",
+    "marks": "5 or 8 or 10",
+    "category": "Practical or Theory",
+    "approach": "how to structure the answer in exam",
+    "keyPoints": ["point to include in answer 1", "point 2", "point 3"]
+  }}
+    ],
 }}
 
 Limits: flashcards 8 (3 Easy 3 Medium 2 Hard), quiz 6 (correct MUST match option text exactly), amendments 3, studyPlan exactly 7 days, mnemonics 3, commonMistakes 4."""
