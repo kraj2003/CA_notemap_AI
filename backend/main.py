@@ -233,82 +233,177 @@ def call_groq(user_prompt: str, max_tokens: int = 3000) -> dict:
 def prompt_part_a(subject: str, attempt: str, notes: str) -> str:
     guide   = SUBJECT_GUIDES.get(subject, "")
     att_ctx = ATTEMPT_CONTEXT.get(attempt, ATTEMPT_CONTEXT["Final"])
-    return f"""CA exam coach for {subject}, CA {attempt}.
-Subject: {guide}
-Level: {att_ctx}
-Notes: \"\"\"{notes}\"\"\"
+    return f"""You are an elite CA exam coach for {subject}, CA {attempt}.
 
-Return this JSON only:
+SUBJECT CONTEXT: {guide}
+ATTEMPT LEVEL: {att_ctx}
+
+STUDENT NOTES:
+\"\"\"{notes}\"\"\"
+
+CRITICAL INSTRUCTION:
+This is an EXAM MARKS tool — not a knowledge tool.
+Students want to score marks. Every output must be exam-oriented.
+Frame everything around: what appears in exam, exact marks, what to write in answer sheet.
+
+Return ONLY this JSON (no markdown, start with {{):
 {{
-  "title": "topic title max 6 words",
-  "summary30sec": "Comprehensive summary covering EVERY concept in the notes. Minimum 8-10 sentences. Cover all sub-topics, conditions, exceptions, and section references. No concept should be left out. A student must be able to revise the entire topic just by reading this.",
-  "examFocus": "how ICAI examines this: question types, marks, traps",
+  "title": "precise topic title max 6 words",
+
+  "summary30sec": "COMPREHENSIVE summary covering EVERY concept from the notes. Minimum 10-12 sentences. Cover all sub-topics, conditions, exceptions, provisos, thresholds, and section references. Include specific amounts and percentages where applicable. A student must be able to revise the ENTIRE topic just by reading this — no concept should be left out.",
+
+  "examFocus": "Exactly how ICAI has examined this topic in recent attempts. Mention specific question types (practical computation / theoretical explanation / scenario-based), typical marks (2/4/5/8/10), which part of paper, and 3 specific exam traps students fall into.",
+
+  "examStrategy": {{
+    "recentPattern": "How this topic appeared in last 3 attempts with marks — e.g. May 2024: Practical 8 marks, Nov 2023: Theory 4 marks, May 2023: Practical 5 marks",
+    "expectedNext": "What type of question is expected in next attempt and approximate marks",
+    "focusArea": "What to focus on — computation vs theory vs both",
+    "timeToSpend": "How many minutes to spend on this topic in exam",
+    "skipIfShort": "What sub-topics to skip if running short on time"
+  }},
+
   "highWeightTopics": [
-    {{"topic":"name","importance":"HIGH or MEDIUM","reason":"why tested","section":"exact ref","marks":"typical marks"}}
+    {{"topic":"specific topic name","importance":"HIGH or MEDIUM","reason":"why ICAI tests this frequently","section":"exact ref e.g. IndAS 16 / SA 315 / Section 43B","marks":"typical marks e.g. 8-10 marks"}}
   ],
+
   "mindmap": {{
     "center": "core topic 3-4 words",
     "branches": [
-      {{"topic":"branch name","subtopics":["sub1","sub2","sub3"]}}
+      {{"topic":"branch name max 4 words","subtopics":["specific sub1","specific sub2","specific sub3"]}}
     ]
   }},
+
   "standards": [
-    {{"name":"full name","number":"ref","keypoints":["p1","p2","p3"],"examTip":"how tested","recentChange":"amendment or null"}}
+    {{"name":"full standard name","number":"exact ref number","keypoints":["specific point with threshold/amount","point 2 with condition","point 3 with exception"],"examTip":"exactly how ICAI tests this — question type and marks","recentChange":"recent Finance Act / MCA / SEBI amendment or null"}}
   ],
+
   "conceptFlow": [
-    {{"step":1,"title":"title","explanation":"2 lines why and how","keypoint":"exam-critical point","reference":"ref or null"}}
+    {{"step":1,"title":"action-oriented step title","explanation":"2 lines: WHY this matters + HOW to apply it with a real CA exam scenario","keypoint":"one sentence a student must memorise for exam","reference":"section/standard ref or null"}}
   ]
 }}
 
-Limits: highWeightTopics 4-5, mindmap.branches 5 each with exactly 3 subtopics, standards 3-4, conceptFlow 7 steps minimum, each step must cover a distinct concept from the notes."""
+QUANTITY RULES:
+- highWeightTopics: exactly 5 items, mix HIGH and MEDIUM
+- mindmap.branches: exactly 6 items each with exactly 3 specific subtopics
+- standards: exactly 4 items most relevant to notes
+- conceptFlow: exactly 7 steps
+- summary30sec: minimum 10 sentences — NO SHORT SUMMARIES"""
+
 
 def prompt_part_b(subject: str, attempt: str, notes: str, title: str) -> str:
     guide   = SUBJECT_GUIDES.get(subject, "")
     att_ctx = ATTEMPT_CONTEXT.get(attempt, ATTEMPT_CONTEXT["Final"])
-    return f"""CA exam coach for {subject}, CA {attempt}. Topic: {title}
-Subject: {guide}
-Level: {att_ctx}
-Notes: \"\"\"{notes}\"\"\"
+    return f"""You are an elite CA exam coach for {subject}, CA {attempt}.
+Topic being studied: {title}
 
-CRITICAL INSTRUCTION: This is an EXAM tool, not a knowledge tool.
-Every output must be marks-oriented.
-Students want to score marks, not just understand concepts.
-Frame everything around: what will appear in exam, how many marks, 
-what exactly to write in answer sheet.
+SUBJECT CONTEXT: {guide}
+ATTEMPT LEVEL: {att_ctx}
 
-Return this JSON only:
+STUDENT NOTES:
+\"\"\"{notes}\"\"\"
+
+CRITICAL INSTRUCTION:
+Generate content that feels COMPLETELY DIFFERENT from generic ChatGPT output.
+Every MCQ must be scenario-based with specific amounts, dates, company names, and section numbers — exactly how ICAI frames questions.
+Wrong options must be common misconceptions — not obviously wrong.
+A student who has not studied properly must find it difficult to guess the correct answer.
+
+Return ONLY this JSON (no markdown, start with {{):
 {{
   "flashcards": [
-    {{"question":"question","answer":"answer with section ref","section":"ref or null","difficulty":"Easy or Medium or Hard"}}
+    {{
+      "question": "specific exam-style question with section reference — not generic",
+      "answer": "precise answer with exact section number, threshold amount, condition, and exception if any",
+      "section": "exact section/standard reference or null",
+      "difficulty": "Easy or Medium or Hard"
+    }}
   ],
+
   "quiz": [
-    {{"question":"MCQ question","options":["opt A","opt B","opt C","opt D"],"correct":"exact text of correct option","explanation":"why correct + section","section":"ref or null","marks":"1 or 2"}}
+    {{
+      "question": "ICAI-style scenario MCQ — must include: company name, specific amount in rupees, financial year, and exact situation. Example format: XYZ Ltd, a manufacturing company, paid employer PF contribution of ₹12 lakhs for FY 2023-24. Of this, ₹8 lakhs was paid before the due date and ₹4 lakhs was paid after filing the return. What amount is deductible under Section 43B for AY 2024-25?",
+      "options": [
+        "option A — plausible but wrong due to a specific technical reason",
+        "option B — correct answer with exact amount or provision",
+        "option C — common misconception students believe",
+        "option D — partially correct but misses one key condition"
+      ],
+      "correct": "exact text of correct option — must match word for word",
+      "explanation": "Why the correct option is right — cite exact section/rule. Why each wrong option is wrong — name the specific mistake. What condition makes this answer unique.",
+      "section": "exact section/standard reference",
+      "marks": "1 or 2",
+      "examTip": "one line — what students commonly get wrong on this type of question"
+    }}
   ],
-  "amendments": [
-    {{"title":"title","effective":"date/attempt","summary":"what changed","impact":"exam impact","priority":"HIGH or MEDIUM"}}
-  ],
-  "studyPlan": [
-    {{"day":1,"focus":"focus area","tasks":["task1","task2","task3"],"duration":"X hours","priority":"HIGH or MEDIUM"}}
-  ],
-  "mnemonics": [
-    {{"concept":"what to remember","mnemonic":"THE MNEMONIC","explanation":"how to use it"}}
-  ],
-  "commonMistakes": [
-    {{"mistake":"what students do wrong","correction":"correct approach with rule","frequency":"Very Common or Common"}}
-  ],
+
   "previousYearQuestions": [
-  {{
-    "question": "exact question as asked in exam",
-    "attempt": "May 2023 or Nov 2022 etc",
-    "marks": "5 or 8 or 10",
-    "category": "Practical or Theory",
-    "approach": "how to structure the answer in exam",
-    "keyPoints": ["point to include in answer 1", "point 2", "point 3"]
-  }}
-    ],
+    {{
+      "question": "realistic exam-style question as ICAI would frame it — scenario with specific company, amount, situation",
+      "attempt": "May 2024 or Nov 2023 or May 2023",
+      "marks": "5 or 8 or 10",
+      "category": "Practical or Theory",
+      "approach": "step-by-step: how to structure the answer in exam — what to write first, second, third",
+      "keyPoints": [
+        "specific point to include in answer with section ref",
+        "specific threshold or amount to mention",
+        "specific exception or proviso to state",
+        "conclusion format as per ICAI"
+      ]
+    }}
+  ],
+
+  "amendments": [
+    {{
+      "title": "specific amendment/notification/circular title",
+      "effective": "exact date or attempt from which applicable",
+      "summary": "exactly what changed — state the before and after clearly",
+      "impact": "how ICAI will test this in exam — expected question type and marks",
+      "priority": "HIGH or MEDIUM"
+    }}
+  ],
+
+  "studyPlan": [
+    {{
+      "day": 1,
+      "focus": "specific chapter or section — not generic topic name",
+      "tasks": [
+        "specific task with time e.g. Read Section 43B conditions and exceptions — 45 min",
+        "specific task e.g. Solve 5 practical problems from ICAI Study Material — 1 hr",
+        "specific task e.g. Revise flashcards for today's session — 20 min"
+      ],
+      "duration": "total hours e.g. 2.5 hours",
+      "priority": "HIGH or MEDIUM"
+    }}
+  ],
+
+  "mnemonics": [
+    {{
+      "concept": "exactly what complex rule or list this helps remember",
+      "mnemonic": "THE ACTUAL MNEMONIC — memorable acronym using first letters",
+      "explanation": "what each letter stands for and how to recall it in exam under pressure"
+    }}
+  ],
+
+  "commonMistakes": [
+    {{
+      "mistake": "exactly what students write wrong in exam — be very specific with example",
+      "correction": "exactly what the correct answer/approach is — cite the rule",
+      "frequency": "Very Common or Common",
+      "marksLost": "how many marks typically lost due to this mistake"
+    }}
+  ]
 }}
 
-Limits: flashcards 8 (3 Easy 3 Medium 2 Hard), quiz 6 (correct MUST match option text exactly), amendments 3, studyPlan exactly 7 days, mnemonics 3, commonMistakes 4."""
+QUANTITY RULES:
+- flashcards: exactly 8 items — 3 Easy, 3 Medium, 2 Hard
+- quiz: exactly 6 items — ALL must be scenario-based with specific amounts and company names
+- quiz correct option MUST match one of the 4 options EXACTLY word for word
+- previousYearQuestions: exactly 4 items — realistic ICAI-style questions
+- amendments: exactly 3 items most relevant to the notes
+- studyPlan: exactly 7 days
+- mnemonics: exactly 3 items
+- commonMistakes: exactly 4 items with marksLost field"""
+
 
 # ═══════════════════════════════════════════════════════════
 # ROUTES
